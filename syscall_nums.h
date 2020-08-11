@@ -244,6 +244,8 @@
 #define __NR_accept4 242
 #define __NR_recvmmsg 243
 #define __NR_arch_specific_syscall 244
+//***LENA ADD**//
+#define __NR_mymmapaddrt 245
 #define __NR_wait4 260
 #define __NR_prlimit64 261
 #define __NR_fanotify_init 262
@@ -522,6 +524,8 @@
 #define SYS_accept4 242
 #define SYS_recvmmsg 243
 #define SYS_arch_specific_syscall 244
+//***LENA ADD***//
+#define SYS_mymmapaddrt 245
 #define SYS_wait4 260
 #define SYS_prlimit64 261
 #define SYS_fanotify_init 262

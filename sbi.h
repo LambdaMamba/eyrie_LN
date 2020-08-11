@@ -18,6 +18,7 @@
 #define SBI_SM_STOP_ENCLAVE      106
 #define SBI_SM_RESUME_ENCLAVE    107
 #define SBI_SM_RANDOM            108
+#define SBI_SM_MYMMAPADD_ENCLAVE 109
 #define SBI_SM_EXIT_ENCLAVE     1101
 #define SBI_SM_CALL_PLUGIN      1000
 #define SBI_SM_NOT_IMPLEMENTED  1111
@@ -78,3 +79,5 @@ static inline uintptr_t sbi_query_multimem_addr()
   return SBI_CALL_2(SBI_SM_CALL_PLUGIN, SM_MULTIMEM_PLUGIN_ID, SM_MULTIMEM_CALL_GET_ADDR);
 }
 #endif
+
+

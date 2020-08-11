@@ -17,6 +17,8 @@ uintptr_t linux_RET_BAD_wrap(unsigned long which);
 uintptr_t syscall_munmap(void *addr, size_t length);
 uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
                   int fd, __off_t offset);
+//*** LENA ADD ***//
+uintptr_t syscall_mymmapaddrt(uintptr_t mmapsize);
 uintptr_t syscall_brk(void* addr);
 #endif /* _LINUX_WRAP_H_ */
 #endif /* LINUX_SYSCALL_WRAPPING */

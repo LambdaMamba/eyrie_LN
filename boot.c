@@ -1,5 +1,5 @@
 #include <asm/csr.h>
-
+#include <stdio.h>
 #include "printf.h"
 #include "interrupt.h"
 #include "syscall.h"
@@ -19,8 +19,15 @@ extern uintptr_t shared_buffer_size;
 uintptr_t utm_base;
 size_t utm_size;
 
+
+uintptr_t dram_baseglobal;
+uintptr_t dram_sizeglobal;
+
+uintptr_t freemem_va_end;
 /* defined in entry.S */
 extern void* encl_trap_handler;
+
+void my_spa_add(uintptr_t base, size_t size);
 
 #ifdef USE_FREEMEM
 
@@ -28,15 +35,28 @@ extern void* encl_trap_handler;
 /* map entire enclave physical memory so that
  * we can access the old page table and free memory */
 /* remap runtime kernel to a new root page table */
+
+
+
 void
 map_physical_memory(uintptr_t dram_base,
                     uintptr_t dram_size)
 {
+  printf("[MY_RUNTIME] ***map_physical_memory() with dram_base 0x%x and size 0x%x ***\n", dram_base, dram_size);
   uintptr_t ptr = EYRIE_LOAD_START;
   /* load address should not override kernel address */
   assert(RISCV_GET_PT_INDEX(ptr, 1) != RISCV_GET_PT_INDEX(runtime_va_start, 1));
   map_with_reserved_page_table(dram_base, dram_size,
       ptr, load_l2_page_table, load_l3_page_table);
+}
+
+
+void 
+my_map_physical_memory(uintptr_t size){
+    freemem_size = freemem_size + size;
+	map_physical_memory(dram_baseglobal, dram_sizeglobal + size);
+    	my_spa_add(freemem_va_end, size);
+
 }
 
 void
@@ -112,6 +132,13 @@ eyrie_boot(uintptr_t dummy, // $a0 contains the return value from the SBI
            uintptr_t utm_vaddr,
            uintptr_t utm_size)
 {
+	printf("[MY_RUNTIME] Eyrie_boot, dram_base: 0x%x, dram_size: 0x%x, runtime_paddr: 0x%x, user_paddr: 0x%x, free_paddr: 0x%x, utm_vaddr: 0x%x, utm_size: 0x%x \n", dram_base, dram_size, runtime_paddr, free_paddr, utm_vaddr, utm_size);
+  
+
+ //***LENA ADD**//
+  dram_baseglobal = dram_base;
+  dram_sizeglobal = dram_size;
+
   /* set initial values */
   load_pa_start = dram_base;
   shared_buffer = utm_vaddr;
@@ -119,13 +146,16 @@ eyrie_boot(uintptr_t dummy, // $a0 contains the return value from the SBI
   runtime_va_start = (uintptr_t) &rt_base;
   kernel_offset = runtime_va_start - runtime_paddr;
 
-  debug("UTM : 0x%lx-0x%lx (%u KB)", utm_vaddr, utm_vaddr+utm_size, utm_size/1024);
-  debug("DRAM: 0x%lx-0x%lx (%u KB)", dram_base, dram_base + dram_size, dram_size/1024);
+  printf("UTM : 0x%lx-0x%lx (%u KB) \n", utm_vaddr, utm_vaddr+utm_size, utm_size/1024);
+  printf("DRAM: 0x%lx-0x%lx (%u KB) \n", dram_base, dram_base + dram_size, dram_size/1024);
 #ifdef USE_FREEMEM
   freemem_va_start = __va(free_paddr);
   freemem_size = dram_base + dram_size - free_paddr;
 
-  debug("FREE: 0x%lx-0x%lx (%u KB), va 0x%lx", free_paddr, dram_base + dram_size, freemem_size/1024, freemem_va_start);
+  
+  freemem_va_end = freemem_va_start + freemem_size;
+
+  printf("FREE: 0x%lx-0x%lx (%u KB), va 0x%lx \n", free_paddr, dram_base + dram_size, freemem_size/1024, freemem_va_start);
 
   /* remap kernel VA */
   remap_kernel_space(runtime_paddr, user_paddr - runtime_paddr);
@@ -168,3 +198,5 @@ eyrie_boot(uintptr_t dummy, // $a0 contains the return value from the SBI
   /* booting all finished, droping to the user land */
   return;
 }
+
+

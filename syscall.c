@@ -216,6 +216,11 @@ void handle_syscall(struct encl_ctx* ctx)
     ret = syscall_brk((void*) arg0);
     break;
 
+  //*** LENA ADD ***///
+  case(SYS_mymmapaddrt):
+    ret = syscall_mymmapaddrt( (uintptr_t) arg0);
+    break;
+
   case(SYS_mmap):
     ret = syscall_mmap((void*) arg0, (size_t)arg1, (int)arg2,
                        (int)arg3, (int)arg4, (__off_t)arg5);
@@ -283,3 +288,4 @@ void handle_syscall(struct encl_ctx* ctx)
   ctx->regs.a0 = ret;
   return;
 }
+

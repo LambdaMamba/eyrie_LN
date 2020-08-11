@@ -1,3 +1,4 @@
+ 
 #ifdef LINUX_SYSCALL_WRAPPING
 #include "uaccess.h"
 #include "linux_wrap.h"
@@ -8,7 +9,13 @@
 #include "rt_util.h"
 #include <sys/utsname.h>
 
+//#include "boot.c"
+
+
+#include "printf.h"
 #define CLOCK_FREQ 1000000000
+
+void my_map_physical_memory(uintptr_t size);
 
 //TODO we should check which clock this is
 uintptr_t linux_clock_gettime(__clockid_t clock, struct timespec *tp){
@@ -101,11 +108,26 @@ uintptr_t syscall_munmap(void *addr, size_t length){
   return ret;
 }
 
+
+
+//*** LENA ADD ***///
+
+uintptr_t syscall_mymmapaddrt(uintptr_t mmapsize){
+    //uintptr_t dummy = 1;
+    printf("[MY_RUNTIME] syscall_mymmapaddrt(), about to map physical memory with size 0x%x\n", mmapsize);
+    my_map_physical_memory(mmapsize);
+
+    return 1;
+
+}
+
 uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
                  int fd, __off_t offset){
   uintptr_t ret = (uintptr_t)((void*)-1);
 
   int pte_flags = PTE_U | PTE_A;
+
+  printf("[MY_RUNTIME] flags = %d, (MAP_ANONYMOUS | MAP_PRIVATE) = %d, fd = %d \n", flags, (MAP_ANONYMOUS | MAP_PRIVATE), fd);
 
   if(flags != (MAP_ANONYMOUS | MAP_PRIVATE) || fd != -1){
     // we don't support mmaping any other way yet
@@ -124,6 +146,9 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
 
   // Find a continuous VA space that will fit the req. size
   int req_pages = vpn(PAGE_UP(length));
+
+
+  printf("[MY_RUNTIME]: req_pages: %d, spa_available: %d \n", req_pages, spa_available());
 
   // Do we have enough available phys pages?
   if( req_pages > spa_available()){
@@ -149,7 +174,7 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
   }
 
  done:
-  print_strace("[runtime] [mmap]: addr: 0x%p, length %lu, prot 0x%x, flags 0x%x, fd %i, offset %lu (%li pages %x) = 0x%p\r\n", addr, length, prot, flags, fd, offset, req_pages, pte_flags, ret);
+  printf("[MY_RUNTIME]: addr: 0x%p, length %lu, prot 0x%x, flags 0x%x, fd %i, offset %lu (%li pages %x) = 0x%p\r\n", addr, length, prot, flags, fd, offset, req_pages, pte_flags, ret);
 
   // If we get here everything went wrong
   return ret;
@@ -200,3 +225,5 @@ uintptr_t syscall_brk(void* addr){
 
 }
 #endif /* LINUX_SYSCALL_WRAPPING */
+
+
