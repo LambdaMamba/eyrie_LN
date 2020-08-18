@@ -98,6 +98,38 @@ alloc_page(uintptr_t vpn, int flags)
   return page;
 }
 
+
+
+/* allocate a new page to a given vpn
+ * returns VA of the page, (returns 0 if fails) */
+uintptr_t
+alloc_page_nvm(uintptr_t vpn, int flags)
+{
+  uintptr_t page;
+  pte* pte = __walk_create(root_page_table, vpn << RISCV_PAGE_BITS);
+
+  assert(flags & PTE_U);
+
+  if (!pte)
+    return 0;
+
+	/* if the page has been already allocated, return the page */
+  if(*pte & PTE_V) {
+    return __va(*pte << RISCV_PAGE_BITS);
+  }
+
+	/* otherwise, allocate one from the freemem */
+  page = spa_get_nvm();
+  assert(page);
+
+  *pte = pte_create(ppn(__pa(page)), flags | PTE_V);
+#ifdef USE_PAGING
+  paging_inc_user_page();
+#endif
+
+  return page;
+}
+
 void
 free_page(uintptr_t vpn){
 
@@ -124,6 +156,33 @@ free_page(uintptr_t vpn){
 
 }
 
+
+void
+free_page_nvm(uintptr_t vpn){
+
+  pte* pte = __walk(root_page_table, vpn << RISCV_PAGE_BITS);
+
+  // No such PTE, or invalid
+  if(!pte || !(*pte & PTE_V))
+    return;
+
+  assert(*pte & PTE_U);
+
+  uintptr_t ppn = pte_ppn(*pte);
+  // Mark invalid
+  // TODO maybe do more here
+  *pte = 0;
+
+#ifdef USE_PAGING
+  paging_dec_user_page();
+#endif
+  // Return phys page
+  spa_put_nvm(__va(ppn << RISCV_PAGE_BITS));
+
+  return;
+
+}
+
 /* allocate n new pages from a given vpn
  * returns the number of pages allocated */
 size_t
@@ -138,11 +197,32 @@ alloc_pages(uintptr_t vpn, size_t count, int flags)
   return i;
 }
 
+size_t
+alloc_pages_nvm(uintptr_t vpn, size_t count, int flags)
+{
+  unsigned int i;
+  for (i = 0; i < count; i++) {
+    if(!alloc_page_nvm(vpn + i, flags))
+      break;
+  }
+
+  return i;
+}
+
 void
 free_pages(uintptr_t vpn, size_t count){
   unsigned int i;
   for (i = 0; i < count; i++) {
     free_page(vpn + i);
+  }
+
+}
+
+void
+free_pages_nvm(uintptr_t vpn, size_t count){
+  unsigned int i;
+  for (i = 0; i < count; i++) {
+    free_page_nvm(vpn + i);
   }
 
 }

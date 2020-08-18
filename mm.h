@@ -8,9 +8,13 @@ uintptr_t translate(uintptr_t va);
 pte* pte_of_va(uintptr_t va);
 #ifdef USE_FREEMEM
 uintptr_t alloc_page(uintptr_t vpn, int flags);
+uintptr_t alloc_page_nvm(uintptr_t vpn, int flags);
 void free_page(uintptr_t vpn);
+void free_page_nvm(uintptr_t vpn);
 size_t alloc_pages(uintptr_t vpn, size_t count, int flags);
+size_t alloc_pages_nvm(uintptr_t vpn, size_t count, int flags);
 void free_pages(uintptr_t vpn, size_t count);
+void free_pages_nvm(uintptr_t vpn, size_t count);
 size_t test_va_range(uintptr_t vpn, size_t count);
 
 uintptr_t get_program_break();

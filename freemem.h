@@ -17,7 +17,11 @@ struct pg_list
 void spa_init(uintptr_t base, size_t size);
 uintptr_t spa_get(void);
 uintptr_t spa_get_zero(void);
+uintptr_t spa_get_nvm(void);
+uintptr_t spa_get_zero_nvm(void);
 void spa_put(uintptr_t page);
+void spa_put_nvm(uintptr_t page);
 unsigned int spa_available();
+unsigned int spa_available_nvm();
 #endif
 #endif

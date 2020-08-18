@@ -27,7 +27,7 @@ uintptr_t freemem_va_end;
 /* defined in entry.S */
 extern void* encl_trap_handler;
 
-void my_spa_add(uintptr_t base, size_t size);
+void spa_init_nvm(uintptr_t base, size_t size);
 
 #ifdef USE_FREEMEM
 
@@ -55,7 +55,7 @@ void
 my_map_physical_memory(uintptr_t size){
     freemem_size = freemem_size + size;
 	map_physical_memory(dram_baseglobal, dram_sizeglobal + size);
-    	my_spa_add(freemem_va_end, size);
+    	spa_init_nvm(freemem_va_end, size);
 
 }
 
