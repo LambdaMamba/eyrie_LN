@@ -104,15 +104,15 @@ uintptr_t syscall_munmap(void *addr, size_t length, int fd){
   uintptr_t ret = (uintptr_t)((void*)-1);
 
   if(fd==-1){
-    printf("[MY_RUNTIME]: before munmap() spa_available: %d \n", spa_available());
+    printf("[MY_RUNTIME]: before munmap() with fd = -1 spa_available: %d \n", spa_available());
 
     free_pages(vpn((uintptr_t)addr), length/RISCV_PAGE_SIZE);
-    printf("[MY_RUNTIME]: after munmap() spa_available: %d \n", spa_available());
+    printf("[MY_RUNTIME]: after munmap() with fd = -1 spa_available: %d \n", spa_available());
 
   }else if(fd==-2){
-    printf("[MY_RUNTIME]: before munmap() spa_available_nvm: %d \n", spa_available_nvm());
+    printf("[MY_RUNTIME]: before munmap() with fd = -2 spa_available_nvm: %d \n", spa_available_nvm());
     free_pages_nvm(vpn((uintptr_t)addr), length/RISCV_PAGE_SIZE);
-    printf("[MY_RUNTIME]: after munmap() spa_available_nvm: %d \n", spa_available_nvm());
+    printf("[MY_RUNTIME]: after munmap() with fd = -2 spa_available_nvm: %d \n", spa_available_nvm());
   }
   ret = 0;
   return ret;
@@ -160,7 +160,7 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
 
   if(fd==-1){
 
-    printf("[MY_RUNTIME]: req_pages: %d, spa_available: %d \n", req_pages, spa_available());
+    printf("[MY_RUNTIME]: fd = -1, req_pages: %d, spa_available: %d \n", req_pages, spa_available());
 
     // Do we have enough available phys pages?
     if( req_pages > spa_available()){
@@ -184,12 +184,12 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
       else
         starting_vpn += valid_pages + 1;
     }
-    printf("[MY_RUNTIME]: After mmap() spa_available: %d \n", req_pages, spa_available());
+    printf("[MY_RUNTIME]: After mmap() with fd = -1: spa_available: %d \n", req_pages, spa_available());
   } else if(fd==-2){
     
 
 
-    printf("[MY_RUNTIME]: req_pages: %d, spa_available_nvm: %d \n", req_pages, spa_available_nvm());
+    printf("[MY_RUNTIME]: fd = -2, req_pages: %d, spa_available_nvm: %d \n", req_pages, spa_available_nvm());
 
     // Do we have enough available phys pages?
     if( req_pages > spa_available_nvm()){
@@ -213,7 +213,7 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
       else
         starting_vpn += valid_pages + 1;
     }
-    printf("[MY_RUNTIME]: After mmap() spa_available_nvm: %d \n", req_pages, spa_available());
+    printf("[MY_RUNTIME]: After mmap() with fd = -2: spa_available_nvm: %d \n", req_pages, spa_available_nvm());
     
   }
   
