@@ -140,7 +140,7 @@ spa_put_nvm(uintptr_t page_addr)
 
   assert(IS_ALIGNED(page_addr, RISCV_PAGE_BITS));
   printf("[MY_RUNTIME] spa_put_nvm() page_addr: 0x%x, EYRIE_LOAD_START: 0x%x, freemem_va_start: 0x%x, freemem_size: 0x%x \n", page_addr, EYRIE_LOAD_START, freemem_va_start, freemem_size);
-  assert(page_addr >= EYRIE_LOAD_START && page_addr < (freemem_va_start  + freemem_size));
+  //assert(page_addr >= EYRIE_LOAD_START && page_addr < (freemem_va_start  + freemem_size));
 
   if (!LIST_EMPTY(spa_free_pages_nvm)) {
     prev = spa_free_pages_nvm.tail;
@@ -202,6 +202,30 @@ spa_init(uintptr_t base, size_t size)
 }
 
 
+void
+spa_add_dram(uintptr_t base, size_t size)
+{
+  uintptr_t cur;
+
+
+
+  // both base and size must be page-aligned
+  assert(IS_ALIGNED(base, RISCV_PAGE_BITS));
+  assert(IS_ALIGNED(size, RISCV_PAGE_BITS));
+
+  initbase = base;
+  initsize = size;
+
+  /* put all free pages in freemem (base) into spa_free_pages */
+  for(cur = base;
+      cur < base + size;
+      cur += RISCV_PAGE_SIZE) {
+    spa_put(cur);
+  }
+  printf("[MY_RUNTIME] spa_add_dram() Free pages: %d \n", spa_free_pages.count);
+}
+
+
 //===LENA ADD===///
 //===Add the free pages based on the extended memory===///
 void spa_init_nvm(uintptr_t base, size_t size){
@@ -212,8 +236,8 @@ void spa_init_nvm(uintptr_t base, size_t size){
   assert(IS_ALIGNED(size, RISCV_PAGE_BITS));
 
   //===Start to add pages from where it ended in spa_init===///
-  for(cur = initbase + initsize;
-      cur < (initbase + initsize) + size;
+  for(cur = base;
+      cur < (base + size);
       cur += RISCV_PAGE_SIZE) {
     spa_put_nvm(cur);
   }

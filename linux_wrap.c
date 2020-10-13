@@ -15,7 +15,7 @@
 #include "printf.h"
 #define CLOCK_FREQ 1000000000
 
-void my_map_physical_memory(uintptr_t size);
+void my_map_physical_memory(uintptr_t addr, uintptr_t size);
 
 //TODO we should check which clock this is
 uintptr_t linux_clock_gettime(__clockid_t clock, struct timespec *tp){
@@ -122,10 +122,10 @@ uintptr_t syscall_munmap(void *addr, size_t length, int fd){
 
 //*** LENA ADD ***///
 
-uintptr_t syscall_mymmapaddrt(uintptr_t mmapsize){
+uintptr_t syscall_mymmapaddrt(uintptr_t mmapaddr, uintptr_t mmapsize){
     //uintptr_t dummy = 1;
     printf("[MY_RUNTIME] syscall_mymmapaddrt(), about to map physical memory with size 0x%x\n", mmapsize);
-    my_map_physical_memory(mmapsize);
+    my_map_physical_memory(mmapaddr, mmapsize);
 
     return 1;
 

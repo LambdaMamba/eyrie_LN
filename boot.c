@@ -29,6 +29,8 @@ extern void* encl_trap_handler;
 
 void spa_init_nvm(uintptr_t base, size_t size);
 
+void spa_add_dram(uintptr_t base, size_t size);
+
 #ifdef USE_FREEMEM
 
 
@@ -52,10 +54,25 @@ map_physical_memory(uintptr_t dram_base,
 
 
 void 
-my_map_physical_memory(uintptr_t size){
+my_map_physical_memory(uintptr_t addr, uintptr_t size){
     freemem_size = freemem_size + size;
-	map_physical_memory(dram_baseglobal, dram_sizeglobal + size);
-    	spa_init_nvm(freemem_va_end, size);
+	
+  if ((size%2)!=0){
+
+    ///*** THIS IS WHERE PROBLEM OCCURS ****
+    //map_physical_memory(dram_baseglobal, dram_sizeglobal + size);
+      // map_physical_memory(addr, (size - 1));
+
+      map_physical_memory(addr, size -1);
+
+      uintptr_t nvm_va_start = __va(addr);
+      //uintptr_t nvm_va_end = nvm_va_start + size;
+
+    	spa_init_nvm(nvm_va_start, size - 1);
+  } else {
+      map_physical_memory(dram_baseglobal, dram_sizeglobal + size);
+      spa_add_dram(freemem_va_end, size);
+  }
 
 }
 
