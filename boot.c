@@ -56,6 +56,10 @@ map_physical_memory(uintptr_t dram_base,
 void 
 my_map_physical_memory(uintptr_t addr, uintptr_t size){
     freemem_size = freemem_size + size;
+  uintptr_t ptr = EYRIE_LOAD_START;
+  load_pa_start_nvm = addr;
+
+  
 	
   if ((size%2)!=0){
 
@@ -63,15 +67,42 @@ my_map_physical_memory(uintptr_t addr, uintptr_t size){
     //map_physical_memory(dram_baseglobal, dram_sizeglobal + size);
       // map_physical_memory(addr, (size - 1));
 
-      map_physical_memory(addr, size -1);
+      // map_physical_memory(addr, size -1);
+      size = size - 1;
 
-      uintptr_t nvm_va_start = __va(addr);
-      //uintptr_t nvm_va_end = nvm_va_start + size;
+      // uintptr_t nvm_va_start = __va(addr);
+      // uintptr_t ptr2 =  nvm_va_start;
 
-    	spa_init_nvm(nvm_va_start, size - 1);
+
+     nvm_va_start = __va_nvm(addr);
+      printf("THE VA FOR NVM REGION : 0x%lx\n", nvm_va_start);
+
+      nvmregion_va_end = nvm_va_start + size;
+      // printf("THE VA FOR runtime_va_start : 0x%lx, PT_INDEX: %d \n", runtime_va_start, RISCV_GET_PT_INDEX(runtime_va_start, 1));
+
+      // assert(RISCV_GET_PT_INDEX(ptr2, 1) != RISCV_GET_PT_INDEX(runtime_va_start, 1));
+      // map_with_reserved_page_table(addr, size,
+      // ptr2, load_l2_page_table, load_l3_page_table);
+      
+      assert(RISCV_GET_PT_INDEX(ptr, 1) != RISCV_GET_PT_INDEX(runtime_va_start, 1));
+      map_with_reserved_page_table(addr, size,
+      ptr, load_l2_page_table, load_l3_page_table);
+
+
+
+      printf("Done map with reserved table\n");
+
+    	spa_init_nvm(nvm_va_start, size);
+
+      //printf("vpn nvm region: %d\n", vpn(nvmregion_va_start));
+
+      //printf("translated va of nvm start: 0x%lx, end: 0x%lx\n", translate(nvm_va_start), translate(nvmregion_va_end));
   } else {
       map_physical_memory(dram_baseglobal, dram_sizeglobal + size);
       spa_add_dram(freemem_va_end, size);
+     // printf("vpn fremem va end: %d, eyrie start: %d\n", vpn(nvmregion_va_start), vpn(EYRIE_ANON_REGION_START));
+      //printf("translated va of extended freemem end: 0x%lx, before extend: 0x%lx\n", translate(freemem_va_end + size), translate(freemem_va_end));
+
   }
 
 }
@@ -215,5 +246,10 @@ eyrie_boot(uintptr_t dummy, // $a0 contains the return value from the SBI
   /* booting all finished, droping to the user land */
   return;
 }
+
+
+
+
+
 
 

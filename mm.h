@@ -16,11 +16,14 @@ size_t alloc_pages_nvm(uintptr_t vpn, size_t count, int flags);
 void free_pages(uintptr_t vpn, size_t count);
 void free_pages_nvm(uintptr_t vpn, size_t count);
 size_t test_va_range(uintptr_t vpn, size_t count);
+size_t test_va_range_nvm(uintptr_t vpn, size_t count);
 
 uintptr_t get_program_break();
 void set_program_break(uintptr_t new_break);
 
 void map_with_reserved_page_table(uintptr_t base, uintptr_t size, uintptr_t ptr, pte* l2_pt, pte* l3_pt);
+void my_map_with_reserved_page_table(uintptr_t base, uintptr_t size, uintptr_t ptr, pte* l2_pt, pte* l3_pt);
+
 #endif /* USE_FREEMEM */
 
 #endif /* _MM_H_ */

@@ -34,6 +34,17 @@ __continue_walk_create(pte* root, uintptr_t addr, pte* pte)
 }
 
 static pte*
+__continue_walk_create_nvm(pte* root, uintptr_t addr, pte* pte)
+{
+  uintptr_t new_page = spa_get_zero();
+  assert(new_page);
+
+  unsigned long free_ppn = ppn(__pa_nvm(new_page));
+  *pte = ptd_create(free_ppn);
+  return __walk_create(root, addr);
+}
+
+static pte*
 __walk_internal(pte* root, uintptr_t addr, int create)
 {
   pte* t = root;
@@ -46,6 +57,26 @@ __walk_internal(pte* root, uintptr_t addr, int create)
       return create ? __continue_walk_create(root, addr, &t[idx]) : 0;
 
     t = (pte*) __va(pte_ppn(t[idx]) << RISCV_PAGE_BITS);
+  }
+
+  return &t[RISCV_GET_PT_INDEX(addr, 3)];
+}
+
+
+static pte*
+__walk_internal_nvm(pte* root, uintptr_t addr, int create)
+{
+  pte* t = root;
+  int i;
+  for (i = 1; i < RISCV_PT_LEVELS; i++)
+  {
+    size_t idx = RISCV_GET_PT_INDEX(addr, i);
+
+    if (!(t[idx] & PTE_V))
+      return create ? __continue_walk_create_nvm(root, addr, &t[idx]) : 0;
+
+    t = (pte*) __va_nvm(pte_ppn(t[idx]) << RISCV_PAGE_BITS);
+    printf("walk internal i %d\n", i);
   }
 
   return &t[RISCV_GET_PT_INDEX(addr, 3)];
@@ -115,14 +146,14 @@ alloc_page_nvm(uintptr_t vpn, int flags)
 
 	/* if the page has been already allocated, return the page */
   if(*pte & PTE_V) {
-    return __va(*pte << RISCV_PAGE_BITS);
+    return __va_nvm(*pte << RISCV_PAGE_BITS);
   }
 
 	/* otherwise, allocate one from the freemem */
   page = spa_get_nvm();
   assert(page);
 
-  *pte = pte_create(ppn(__pa(page)), flags | PTE_V);
+  *pte = pte_create(ppn(__pa_nvm(page)), flags | PTE_V);
 #ifdef USE_PAGING
   paging_inc_user_page();
 #endif
@@ -177,7 +208,7 @@ free_page_nvm(uintptr_t vpn){
   paging_dec_user_page();
 #endif
   // Return phys page
-  spa_put_nvm(__va(ppn << RISCV_PAGE_BITS));
+  spa_put_nvm(__va_nvm(ppn << RISCV_PAGE_BITS));
 
   return;
 
@@ -247,6 +278,21 @@ test_va_range(uintptr_t vpn, size_t count){
   return i;
 }
 
+size_t
+test_va_range_nvm(uintptr_t vpn, size_t count){
+
+  unsigned int i;
+  /* Validate the region */
+  for (i = 0; i < count; i++) {
+    pte* pte = __walk_internal_nvm(root_page_table, (vpn+i) << RISCV_PAGE_BITS, 0);
+    // If the page exists and is valid then we cannot use it
+    if(pte && *pte){
+      break;
+    }
+  }
+  return i;
+}
+
 /* get a mapped physical address for a VA */
 uintptr_t
 translate(uintptr_t va)
@@ -268,6 +314,44 @@ pte_of_va(uintptr_t va)
 }
 
 void
+mmap_with_reserved_page_table(uintptr_t dram_base,
+                               uintptr_t dram_size,
+                               uintptr_t ptr,
+                               pte* l2_pt,
+                               pte* l3_pt)
+{
+  uintptr_t offset = 0;
+  uintptr_t leaf_level = 3;
+  pte* leaf_pt = l3_pt;
+  /* use megapage if l3_pt is null */
+  if (!l3_pt) {
+    leaf_level = 2;
+    leaf_pt = l2_pt;
+  }
+
+  assert(dram_size <= RISCV_GET_LVL_PGSIZE(leaf_level - 1));
+  //printf("leaf level: %d\n", leaf_level);
+ // printf("dram_base aligned? %d\n",IS_ALIGNED(dram_base, RISCV_GET_LVL_PGSIZE_BITS(leaf_level)));
+  printf("ptr aligned? %d, ptr: 0x%lx, leaf: 0x%lx\n",IS_ALIGNED(ptr, RISCV_GET_LVL_PGSIZE_BITS(leaf_level - 1)),ptr,RISCV_GET_LVL_PGSIZE_BITS(leaf_level - 1)); 
+
+  assert(IS_ALIGNED(dram_base, RISCV_GET_LVL_PGSIZE_BITS(leaf_level)));
+  assert(IS_ALIGNED(ptr, RISCV_GET_LVL_PGSIZE_BITS(leaf_level - 1)));
+
+  // printf("before leaf_pt\n");
+  /* set leaf level */
+  for (offset = 0;
+       offset < dram_size;
+       offset += RISCV_GET_LVL_PGSIZE(leaf_level))
+  {
+    printf("offset 0x%lx\n", offset);
+    leaf_pt[RISCV_GET_PT_INDEX(ptr + offset, leaf_level)] =
+      pte_create(ppn(dram_base + offset),
+          PTE_R | PTE_W | PTE_X | PTE_A | PTE_D);
+  }
+}
+
+
+void
 __map_with_reserved_page_table(uintptr_t dram_base,
                                uintptr_t dram_size,
                                uintptr_t ptr,
@@ -284,6 +368,10 @@ __map_with_reserved_page_table(uintptr_t dram_base,
   }
 
   assert(dram_size <= RISCV_GET_LVL_PGSIZE(leaf_level - 1));
+  printf("leaf level: %d\n", leaf_level);
+  printf("dram_base aligned? %d\n",IS_ALIGNED(dram_base, RISCV_GET_LVL_PGSIZE_BITS(leaf_level)));
+  printf("ptr aligned? %d, ptr: 0x%lx, leaf: 0x%lx\n",IS_ALIGNED(ptr, RISCV_GET_LVL_PGSIZE_BITS(leaf_level - 1)),ptr,RISCV_GET_LVL_PGSIZE_BITS(leaf_level - 1)); 
+
   assert(IS_ALIGNED(dram_base, RISCV_GET_LVL_PGSIZE_BITS(leaf_level)));
   assert(IS_ALIGNED(ptr, RISCV_GET_LVL_PGSIZE_BITS(leaf_level - 1)));
 
@@ -320,5 +408,20 @@ map_with_reserved_page_table(uintptr_t dram_base,
   else
     __map_with_reserved_page_table(dram_base, dram_size, ptr, l2_pt, l3_pt);
 }
+
+
+void
+my_map_with_reserved_page_table(uintptr_t dram_base,
+                             uintptr_t dram_size,
+                             uintptr_t ptr,
+                             pte* l2_pt,
+                             pte* l3_pt)
+{
+  if (dram_size > RISCV_GET_LVL_PGSIZE(2))
+    mmap_with_reserved_page_table(dram_base, dram_size, ptr, l2_pt, 0);
+  else
+    mmap_with_reserved_page_table(dram_base, dram_size, ptr, l2_pt, l3_pt);
+}
+
 
 #endif /* USE_FREEMEM */

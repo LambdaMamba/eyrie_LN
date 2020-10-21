@@ -37,6 +37,8 @@
 #define EYRIE_USER_STACK_SIZE   0x20000
 #define EYRIE_USER_STACK_END    (EYRIE_USER_STACK_START - EYRIE_USER_STACK_SIZE)
 
+#define nvmregion_va_start  0xffffffffc0000000
+
 #define PTE_V     0x001 // Valid
 #define PTE_R     0x002 // Read
 #define PTE_W     0x004 // Write
@@ -64,14 +66,30 @@ static inline uintptr_t kernel_va_to_pa(void* ptr)
 }
 
 uintptr_t load_pa_start;
+uintptr_t load_pa_start;
 static inline uintptr_t __va(uintptr_t pa)
 {
   return (pa - load_pa_start) + EYRIE_LOAD_START;
 }
 
+uintptr_t load_pa_start_nvm;
+uintptr_t nvmregion_va_end;
+uintptr_t nvm_va_start;
+static inline uintptr_t __va_nvm(uintptr_t pa)
+{
+  
+  return (pa - load_pa_start_nvm) + nvmregion_va_start;
+}
+
+
 static inline uintptr_t __pa(uintptr_t va)
 {
   return (va - EYRIE_LOAD_START) + load_pa_start;
+}
+
+static inline uintptr_t __pa_nvm(uintptr_t va)
+{
+  return (va - nvmregion_va_start) + load_pa_start;
 }
 
 typedef uintptr_t pte;
@@ -132,3 +150,28 @@ uintptr_t shared_buffer_size;
 
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

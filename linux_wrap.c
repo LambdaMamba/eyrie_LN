@@ -138,13 +138,14 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
   int pte_flags = PTE_U | PTE_A;
 
   printf("[MY_RUNTIME] flags = %d, (MAP_ANONYMOUS | MAP_PRIVATE) = %d, fd = %d \n", flags, (MAP_ANONYMOUS | MAP_PRIVATE), fd);
-
+  printf("before if %d\n", fd);
   if(flags != (MAP_ANONYMOUS | MAP_PRIVATE) || ((fd != -1)&&(fd != -2)) ){
     // we don't support mmaping any other way yet
+    printf("going to done flags: %d\n", flags);
     goto done;
   }
 
-
+  printf("before flags %d\n", fd);
 
     // Set flags
     if(prot & PROT_READ)
@@ -154,8 +155,9 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
     if(prot & PROT_EXEC)
       pte_flags |= PTE_X;
     // Find a continuous VA space that will fit the req. size
-
+printf("before req_pages %d\n", fd);
     int req_pages = vpn(PAGE_UP(length));
+    printf("after req_pages %d\n", fd);
 
 
   if(fd==-1){
@@ -195,11 +197,12 @@ uintptr_t syscall_mmap(void *addr, size_t length, int prot, int flags,
     if( req_pages > spa_available_nvm()){
       goto done;
     }
+   
 
     // Start looking at EYRIE_ANON_REGION_START for VA space
-    uintptr_t starting_vpn = vpn(EYRIE_ANON_REGION_START);
+    uintptr_t starting_vpn = vpn(nvmregion_va_start);
     uintptr_t valid_pages;
-    while((starting_vpn + req_pages) <= EYRIE_ANON_REGION_END){
+    while((starting_vpn + req_pages) <= nvmregion_va_end){
       valid_pages = test_va_range(starting_vpn, req_pages);
 
       if(req_pages == valid_pages){
