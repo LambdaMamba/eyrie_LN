@@ -173,7 +173,8 @@ printf("before req_pages %d\n", fd);
     uintptr_t starting_vpn = vpn(EYRIE_ANON_REGION_START);
     uintptr_t valid_pages;
     while((starting_vpn + req_pages) <= EYRIE_ANON_REGION_END){
-      valid_pages = test_va_range(starting_vpn, req_pages);
+      printf("testing va range\n");
+      valid_pages = test_va_range_nvm(starting_vpn, req_pages);
 
       if(req_pages == valid_pages){
         // Set a successful value if we allocate
